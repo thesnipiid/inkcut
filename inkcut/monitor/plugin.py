@@ -16,7 +16,8 @@ from inkcut.core.api import Plugin
 
 
 class MonitorPlugin(Plugin):
-    add_newline = Bool(False).tag(config=True)
+    #Add to driver
+    add_newline = Bool(True).tag(config=True)
     strip_whitespace = Bool(False).tag(config=True)
     input_enabled = Bool(True).tag(config=True)
     output_enabled = Bool(True).tag(config=True)

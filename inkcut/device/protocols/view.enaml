@@ -10,7 +10,7 @@ Created on Dec 11, 2017
 
 @author: jrm
 """
-from enaml.widgets.api import Container, Label, ObjectCombo
+from enaml.widgets.api import Container, Label, ObjectCombo, CheckBox, Form, SpinBox
 from enaml.qt.QtWidgets import QApplication
 
 
@@ -23,6 +23,64 @@ enamldef DMPLConfigView(Container):
         items  = list(model.get_member('mode').items)
         selected := model.mode
 
+enamldef GCodeConfigView(Container):
+    attr model
+    Form:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "connection timeout (second)"
+        SpinBox:
+            value := model.g_code_rx_timeout
+            minimum = 0
+            maximum = 20
+    Form: laser_mode:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "Laser mode "
+        CheckBox:
+            checked := model.laser_mode
+    Form:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "Device buffer size"
+        SpinBox:
+            enabled << model.laser_mode
+            value := model.device_buffer_size
+            minimum = 1
+            maximum = 20
+    Form:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "Laser Power (%)"
+        SpinBox:
+            enabled << model.laser_mode
+            value := model.laser_power
+            minimum = 0
+            maximum = 100
+    Form:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "Travel Speed (mm/min)"
+        SpinBox:
+            enabled << model.laser_mode
+            value := model.travel_speed
+            minimum = 60
+            maximum = 6000
+    Form:
+        padding = 0
+        Label:
+            # TODO: add translate
+            text = "Working Speed (mm/min)"
+        SpinBox:
+            enabled << model.laser_mode
+            value := model.working_speed
+            minimum = 60
+            maximum = 6000
 
 enamldef CAMMConfigView(Container):
     attr model

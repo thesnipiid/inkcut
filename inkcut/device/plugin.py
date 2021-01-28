@@ -131,6 +131,7 @@ class DeviceProtocol(Model):
     #: The protocol specific config
     config = Instance(Model, ()).tag(config=True)
 
+
     def connection_made(self):
         """ This is called when a connection is made to the device.
 
@@ -569,6 +570,7 @@ class Device(Model):
 
         """
         log.debug("device | connect")
+
         if self.connection.connected:
             log.debug("device | already connected")
             log.debug(traceback.format_stack())
@@ -749,6 +751,10 @@ class Device(Model):
                         yield defer.maybeDeferred(self.connect)
 
                         protocol = connection.protocol
+                        #TODO : don't do that here !!!!
+                        if protocol.declaration.id == 'gcode':
+                            protocol.g_code_ok = protocol.config.device_buffer_size
+                            yield async_sleep(10000)
 
                         #: Write startup command
                         if config.commands_before:
@@ -765,6 +771,7 @@ class Device(Model):
                                 protocol.set_velocity, config.speed)
 
                         #: For point in the path
+
                         for (d, cmd, args, kwargs) in self.process(model):
 
                             #: Check if we paused
@@ -789,6 +796,7 @@ class Device(Model):
                             #: Invoke the command
                             #: If you want to let the device handle more complex
                             #: commands such as curves do it in process and handle
+
                             yield defer.maybeDeferred(cmd, *args, **kwargs)
                             total_moved += d
 
@@ -803,6 +811,7 @@ class Device(Model):
                             #: quickly gets filled and crappy china piece cutters
                             #: get all jacked up. If the transport sends to a spooled
                             #: output (such as a printer) this can be set to 0
+
                             if rate > 0:
                                 # log.debug("d={}, delay={} t={}".format(
                                 #     d, delay, d/delay
@@ -824,6 +833,7 @@ class Device(Model):
                             yield defer.maybeDeferred(connection.write,
                                                       config.commands_after)
 
+                        print("ici")
                         #: Update stats
                         info.ended = datetime.now()
 
@@ -831,10 +841,12 @@ class Device(Model):
                         if info.status == 'running':
                             info.done = True
                             info.status = 'complete'
+                            print("ici")
                     except Exception as e:
                         log.error(traceback.format_exc())
                         raise
                     finally:
+                        pass
                         if connection.connected:
                             yield defer.maybeDeferred(self.disconnect)
 
@@ -915,16 +927,19 @@ class Device(Model):
                     1/config.quality_factor, 1/config.quality_factor)
                 polypath = list(map(m_inv.map, polypath))
 
+            laser = False
             # Apply device filters to polypath
             for f in self.filters:
                 log.debug(" filter | Running {} on polypath".format(f))
                 polypath = f.apply_to_polypath(polypath)
 
             for path in polypath:
-
                 #: And then each point within the path
                 #: this is a polygon
                 for i, p in enumerate(path):
+
+                    if i >0:
+                        laser = True
 
                     #: Head state
                     # 0 move, 1 cut
@@ -945,7 +960,9 @@ class Device(Model):
                     #: the path interpolation is skipped entirely
                     if skip_interpolation:
                         x, y = p.x(), p.y()
-                        yield (l, self.move, ([x, y, z],), {})
+                        #print("Point ",i," is : x=",x," y=",y)
+                        yield (l, self.connection.protocol.move, (x, y, z, laser), {})
+                        #yield (l, self.move, ([x, y, z],), {})
                         continue
 
                     #: Where we are within the subpath
@@ -979,10 +996,11 @@ class Device(Model):
 
                         #: Add step size
                         d += dl
-
+                laser = False
             #: Make sure we get the endpoint
             ep = model.currentPosition()
             x, y = ep.x(), ep.y()
+
             yield (0, self.move, ([x, y, 0],), {})
         except Exception as e:
             log.error("device | processing error: {}".format(

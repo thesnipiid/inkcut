@@ -31,6 +31,10 @@ def dmpl_config_view():
         from .view import DMPLConfigView
     return DMPLConfigView
 
+def gcode_config_view():
+    with enaml.imports():
+        from .view import GCodeConfigView
+    return GCodeConfigView
 
 def cammgl1_factory(driver, declaration):
     from .camm import CAMMGL1Protocol
@@ -38,8 +42,9 @@ def cammgl1_factory(driver, declaration):
 
 
 def gcode_factory(driver, declaration):
-    from .gcode import GCodeProtocol
-    return GCodeProtocol(declaration=declaration)
+    from .gcode import GCodeProtocol, GCodeConfig
+    return GCodeProtocol(declaration=declaration,
+                        config=GCodeConfig(**driver.get_protocol_config('gcode')))
 
 
 def mock_factory(driver, declaration):
@@ -49,13 +54,13 @@ def mock_factory(driver, declaration):
 
 enamldef ProtocolManifest(PluginManifest):
     """ Add new protocols here or within any other plugin.
-    
+
     All protocols should implement the IDeviceProtocol and then
     register as an extension to the point 'inkcut.device.protocols'
-    
+
     """
     id = 'inkcut.device.protocols'
-    
+
     Extension:
         id = 'protocols'
         point = DEVICE_PROTOCOL_POINT
@@ -85,10 +90,11 @@ enamldef ProtocolManifest(PluginManifest):
             id = 'gcode'
             name = 'G-Code'
             factory = gcode_factory
+            config_view = gcode_config_view
 
         DeviceProtocol:
             id = 'debug'
             name = 'Virtual'
             factory = mock_factory
 
-        
+
